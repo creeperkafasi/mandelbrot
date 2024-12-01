@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-unsigned int MAX_ITER = 100;
+unsigned int MAX_ITER = 1000;
 #define MOVE_DELTA 0.5
 #define ZOOM_DELTA 0.5
 
@@ -50,11 +50,16 @@ int main(){
 	Texture2D texture = LoadTextureFromImage(im);
 
 	Vector2 position = {0,0};
-	double zoom = 1;
+	float zoom = 1;
 
 
 	//almondBread(&texture, im.data, position, zoom);
 
+	Shader shader = LoadShader(NULL, "mandelbrot.fs");
+	int positionLoc = GetShaderLocation(shader, "position");
+	int zoomLoc = GetShaderLocation(shader, "zoom");
+	int maxIterLoc = GetShaderLocation(shader, "maxIter");
+	int sizeLoc = GetShaderLocation(shader, "size");
 
 	double t = GetTime();
 	while(!WindowShouldClose()){
@@ -87,19 +92,33 @@ int main(){
 		}
 		t = GetTime();
 
-		almondBread(&texture, im.data, position, zoom);
+		//almondBread(&texture, im.data, position, zoom);
+
+		SetShaderValue(shader, positionLoc, &position, SHADER_UNIFORM_VEC2);
+		SetShaderValue(shader, zoomLoc, &zoom, SHADER_UNIFORM_FLOAT);
+		SetShaderValue(shader, maxIterLoc, &MAX_ITER, SHADER_UNIFORM_INT);
+		Vector2 windowSize = (Vector2){
+			.x = GetScreenWidth(),
+			.y = GetScreenHeight()
+		};
+		SetShaderValue(shader, sizeLoc, &windowSize, SHADER_UNIFORM_VEC2);
+		BeginShaderMode(shader);
+		DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), WHITE);
+		EndShaderMode();
 
 		BeginDrawing();
-		ClearBackground(BLACK);
+		//ClearBackground(BLACK);
 
-		DrawTexture(texture, 0, 0, WHITE);
+		//DrawTexture(texture, 0, 0, WHITE);
 		char bottomText[64];
-		sprintf(bottomText, "%d Iterations", MAX_ITER);
+		sprintf(bottomText, "%d Iterations, %lf zoom", MAX_ITER, zoom);
 		DrawText(bottomText, 0, height - 32, 24, WHITE);
 
 		EndDrawing();
 	};
 
+	UnloadShader(shader);
+	UnloadTexture(texture);
 	CloseWindow();
 	return 0;
 }
